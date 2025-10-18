@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>组词对对碰</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            width: 100%;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .timer-container {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+        
+        .timer {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 20px;
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        .start-btn {
+            background-color: #ff4081;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .start-btn:hover {
+            background-color: #f50057;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .start-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-gap: 15px;
+            margin: 30px 0;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .card {
+            aspect-ratio: 1/1;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card-front {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+            color: #333;
+        }
+        
+        .card-back {
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            color: #333;
+            transform: rotateY(180deg);
+        }
+        
+        .card.selected .card-front {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            box-shadow: 0 0 15px #ffeb3b;
+        }
+        
+        .matched .card-back {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        }
+        
+        .results {
+            margin-top: 30px;
+            width: 100%;
+            max-width: 600px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .results h2 {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.8rem;
+        }
+        
+        .matched-words {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .word {
+            background-color: rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            max-width: 600px;
+        }
+        
+        @media (max-width: 600px) {
+            .game-board {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .timer {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>组词对对碰</h1>
+            <div class="timer-container">
+                <div class="timer">00:00</div>
+                <button class="start-btn">开始游戏</button>
+            </div>
+        </header>
+        
+        <div class="game-board" id="gameBoard">
+            <!-- 卡片将通过JavaScript动态生成 -->
+        </div>
+        
+        <div class="results">
+            <h2>已匹配词组</h2>
+            <div class="matched-words" id="matchedWords">
+                <!-- 匹配成功的词组将在这里显示 -->
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <p>游戏规则：点击"开始游戏"按钮开始计时，然后点击卡片进行匹配。</p>
+            <p>每次点击两张卡片，如果它们能组成一个词语，则匹配成功！</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 游戏元素
+            const gameBoard = document.getElementById('gameBoard');
+            const startBtn = document.querySelector('.start-btn');
+            const timerDisplay = document.querySelector('.timer');
+            const matchedWordsContainer = document.getElementById('matchedWords');
+            
+            // 游戏状态
+            let timer = null;
+            let seconds = 0;
+            let gameStarted = false;
+            let firstCard = null;
+            let secondCard = null;
+            let lockBoard = false;
+            let matchedPairs = 0;
+            
+            // 汉字和匹配规则
+            const characters = ['银', '行', '取', '钱', '邮', '局', '寄', '信', '超', '市'];
+            const wordPairs = {
+                '银': '行',
+                '行': '银',
+                '取': '钱',
+                '钱': '取',
+                '邮': '局',
+                '局': '邮',
+                '寄': '信',
+                '信': '寄',
+                '超': '市',
+                '市': '超'
+            };
+            const wordDisplay = {
+                '银': '银行',
+                '取': '取钱',
+                '邮': '邮局',
+                '寄': '寄信',
+                '超': '超市'
+            };
+            
+            // 初始化游戏
+            function initGame() {
+                gameBoard.innerHTML = '';
+                matchedWordsContainer.innerHTML = '';
+                matchedPairs = 0;
+                seconds = 0;
+                timerDisplay.textContent = '00:00';
+                gameStarted = false;
+                
+                // 洗牌算法
+                const shuffledCharacters = [...characters].sort(() => Math.random() - 0.5);
+                
+                // 创建卡片
+                shuffledCharacters.forEach(character => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.dataset.character = character;
+                    
+                    const cardInner = document.createElement('div');
+                    cardInner.className = 'card-inner';
+                    
+                    const cardFront = document.createElement('div');
+                    cardFront.className = 'card-front';
+                    cardFront.textContent = '?';
+                    
+                    const cardBack = document.createElement('div');
+                    cardBack.className = 'card-back';
+                    cardBack.textContent = character;
+                    
+                    cardInner.appendChild(cardFront);
+                    cardInner.appendChild(cardBack);
+                    card.appendChild(cardInner);
+                    
+                    card.addEventListener('click', flipCard);
+                    gameBoard.appendChild(card);
+                });
+            }
+            
+            // 开始计时
+            function startTimer() {
+                if (timer) clearInterval(timer);
+                seconds = 0;
+                timer = setInterval(() => {
+                    seconds++;
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = seconds % 60;
+                    timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+            
+            // 停止计时
+            function stopTimer() {
+                clearInterval(timer);
+            }
+            
+            // 翻转卡片
+            function flipCard() {
+                if (!gameStarted) return;
+                if (lockBoard) return;
+                if (this === firstCard) return;
+                if (this.classList.contains('matched')) return;
+                
+                this.classList.add('flipped', 'selected');
+                
+                if (!firstCard) {
+                    firstCard = this;
+                    return;
+                }
+                
+                secondCard = this;
+                lockBoard = true;
+                
+                checkForMatch();
+            }
+            
+            // 检查是否匹配
+            function checkForMatch() {
+                const isMatch = wordPairs[firstCard.dataset.character] === secondCard.dataset.character;
+                
+                if (isMatch) {
+                    disableCards();
+                    addMatchedWord(firstCard.dataset.character);
+                    checkGameEnd();
+                } else {
+                    unflipCards();
+                }
+            }
+            
+            // 禁用匹配的卡片
+            function disableCards() {
+                firstCard.classList.add('matched');
+                secondCard.classList.add('matched');
+                firstCard.classList.remove('selected');
+                secondCard.classList.remove('selected');
+                
+                resetBoard();
+            }
+            
+            // 添加匹配的词组
+            function addMatchedWord(character) {
+                const word = document.createElement('div');
+                word.className = 'word';
+                word.textContent = wordDisplay[character];
+                matchedWordsContainer.appendChild(word);
+                matchedPairs++;
+            }
+            
+            // 翻转回卡片
+            function unflipCards() {
+                setTimeout(() => {
+                    firstCard.classList.remove('flipped', 'selected');
+                    secondCard.classList.remove('flipped', 'selected');
+                    
+                    resetBoard();
+                }, 1000);
+            }
+            
+            // 重置棋盘状态
+            function resetBoard() {
+                [firstCard, secondCard] = [null, null];
+                lockBoard = false;
+            }
+            
+            // 检查游戏是否结束
+            function checkGameEnd() {
+                if (matchedPairs === 5) {
+                    stopTimer();
+                    setTimeout(() => {
+                        alert(`恭喜！你完成了游戏！用时：${timerDisplay.textContent}`);
+                    }, 500);
+                }
+            }
+            
+            // 开始游戏按钮事件
+            startBtn.addEventListener('click', function() {
+                if (!gameStarted) {
+                    gameStarted = true;
+                    startTimer();
+                    startBtn.textContent = '重新开始';
+                } else {
+                    stopTimer();
+                    initGame();
+                    startTimer();
+                }
+            });
+            
+            // 初始化游戏
+            initGame();
+        });
+    </script>
+</body>
+</html>
